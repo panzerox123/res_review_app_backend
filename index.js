@@ -1,9 +1,11 @@
 const express = require('express');
+const cors = require('cors')
 const { Client } = require('pg');
 const app = express();
 const PORT = process.env.PORT || 8000;
 
 app.use(express.json())
+app.use(cors())
 
 app.post('/createCustomer', async (req, res) => {
     client = new Client();
