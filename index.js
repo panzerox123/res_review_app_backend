@@ -126,7 +126,7 @@ app.post('/foodGivenRestaurant', async(req,res)=>{
     res.status(200).send(back.rows)
 })
 
-app.post('/deliveryPersonnelOrders', async(req,res)=>{
+app.post('/viewOrdersDelivery', async(req,res)=>{
     client = new Client();
     client.connect(err => {
         if (err) {
@@ -136,10 +136,9 @@ app.post('/deliveryPersonnelOrders', async(req,res)=>{
         }
     });
     try {
-        back = await client.query(`select * from (orders o join delivery_personnel d on o.personnelid = d.personnelid) join login_credentials l on l.username = d.username where d.username = '${req.body.username}';`);
+        back = await client.query(`SELECT * FROM (orders o JOIN delivery_personnel d ON o.personnelid = d.personnelid) JOIN login_credentials l ON l.username = d.username WHERE d.username = '${req.body.username}';`);
         client.end()
     } catch (err){
-        console.log(err)
         res.status(404).send()
         return
     }
@@ -156,10 +155,17 @@ app.post('/placeOrder', async(req,res)=>{
         }
     });
     try {
-        const back = await client.query(`INSERT INTO ORDERS (cost, address, status, customerid, personnelid) values(100, 'Example Address', 'Order placed', '${req.body.customerid}', 1) RETURNING *`)
-        for(var i = 0; i < req.body.food.length; i++){
-            ins_back = await client.query(`INSERT INTO FOOD_ORDERS values(${req.body.food[i].id},${back.rows[0]['orderid']}, ${req.body.food[i].quantity});`)
+
+        var cost = 0
+
+        for(i = 0; i < req.body.order.length; i++) {
+            var back = await client.query(`SELECT price FROM food WHERE foodid = ${req.body.order[i][0]}`)
+            cost = cost + back.rows[0]['price'] * parseInt(req.body.order[i][1])
         }
+
+        const custId = await client.query(`SELECT customerid FROM customer WHERE username = '${req.body.username}'`)
+        const temp = await client.query(`INSERT INTO ORDERS (cost, address, status, customerid, personnelid) values(${cost}, '${req.body.address}', 'Order placed', ${custId.rows[0]['customerid']}, 1) RETURNING *`)
+
         client.end()
     } catch (err){
         console.log(err)
